@@ -3,12 +3,26 @@ const connectDB = require("./config/database");
 const app = express();
 const userModel = require("./models/user");
 
-app.use(express.json())
+app.use(express.json());
 
 // signup for the user
 app.post("/signup", async (req, res) => {
+  const data = req.body;
   try {
-    const user = new userModel(req.body);
+
+    if (data?.skills) {
+      if (Array.isArray(data.skills)) {
+        const uniqueSkills = [...new Set(data.skills)];
+        if (uniqueSkills.length !== data.skills.length) {
+          throw new Error("Duplicate skills are not allowed.");
+        }
+      }
+    }
+
+    if (data?.skills.length > 20) {
+      throw new Error("Skills can not be more than 20");
+    }
+    const user = new userModel(data);
     await user.save();
     res.send("user added successfully");
   } catch (err) {
@@ -16,26 +30,26 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-// find user by email 
+// find user by email
 app.get("/user", async (req, res) => {
   try {
     const email = req.body.emailId;
-    const user = await userModel.find({emailId : email})
-    if(user.length === 0) {
-      res.status(404).send("User not found")
-    }else{
-      res.status(200).send(user)
+    const user = await userModel.find({ emailId: email });
+    if (user.length === 0) {
+      res.status(404).send("User not found");
+    } else {
+      res.status(200).send(user);
     }
   } catch (err) {
     res.status(400).send(err.message);
   }
 });
- 
+
 // Getting all user data
 app.get("/feed", async (req, res) => {
   try {
-    const users = await userModel.find({})
-    res.send(users)
+    const users = await userModel.find({});
+    res.send(users);
   } catch (err) {
     res.status(400).send(err.message);
   }
@@ -45,28 +59,53 @@ app.get("/feed", async (req, res) => {
 app.delete("/user", async (req, res) => {
   const userId = req.body.userId;
   try {
-    const user = await userModel.findByIdAndDelete({_id:userId})
+    const user = await userModel.findByIdAndDelete({ _id: userId });
 
-    res.status(200).send("User deleted successfully")
-  }
-  catch(err) {
+    res.status(200).send("User deleted successfully");
+  } catch (err) {
     res.status(400).send(err.message);
   }
-})
+});
 
 // update data from database
-app.patch("/user", async (req, res)=> {
-  const userId = req.body._id
+app.patch("/user/:userId", async (req, res) => {
+  const userId = req.params?.userId;
   const data = req.body;
-  console.log(userId)
-  try{
-    await userModel.findByIdAndUpdate({_id:userId}, data)
-    res.status(200).send("User updated successfully")
+
+  try {
+    const ALLOWED_UPDATES = ["age", "gender", "photoUrl", "about", "skills"];
+
+    const isUpdateAllowed = Object.keys(data).every((k) =>
+      ALLOWED_UPDATES.includes(k)
+    );
+
+    if (!isUpdateAllowed) {
+      throw new Error("Update is not allowed");
+    }
+
+    // Check for duplicate values in the 'skills' array
+    if (data?.skills) {
+      if (Array.isArray(data.skills)) {
+        const uniqueSkills = [...new Set(data.skills)];
+        if (uniqueSkills.length !== data.skills.length) {
+          throw new Error("Duplicate skills are not allowed.");
+        }
+      }
+    }
+
+    if (data?.skills.length > 20) {
+      throw new Error("Skills can not be more than 20");
+    }
+
+    const user = await userModel.findByIdAndUpdate({ _id: userId }, data, {
+      returnDocument: "after",
+      runValidators: true,
+    });
+    res.status(200).send("User updated successfully");
+  } catch (err) {
+    res.status(400).send("UPDATE FAILD: " + err.message);
   }
-  catch(err) {
-    res.status(400).send(err.message);
-  }
-})
+});
 
 connectDB()
   .then(() => {
