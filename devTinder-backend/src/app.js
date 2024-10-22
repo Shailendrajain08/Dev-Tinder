@@ -7,9 +7,8 @@ app.use(express.json());
 
 // signup for the user
 app.post("/signup", async (req, res) => {
-  const data = req.body;
+  const data = req.body
   try {
-
     if (data?.skills) {
       if (Array.isArray(data.skills)) {
         const uniqueSkills = [...new Set(data.skills)];
@@ -17,11 +16,12 @@ app.post("/signup", async (req, res) => {
           throw new Error("Duplicate skills are not allowed.");
         }
       }
-    }
 
-    if (data?.skills.length > 20) {
-      throw new Error("Skills can not be more than 20");
+      if (data?.skills.length > 20) {
+        throw new Error("Skills can not be more than 20");
+      }
     }
+    
     const user = new userModel(data);
     await user.save();
     res.send("user added successfully");
@@ -91,10 +91,9 @@ app.patch("/user/:userId", async (req, res) => {
           throw new Error("Duplicate skills are not allowed.");
         }
       }
-    }
-
-    if (data?.skills.length > 20) {
-      throw new Error("Skills can not be more than 20");
+      if (data?.skills.length > 20) {
+        throw new Error("Skills can not be more than 20");
+      }
     }
 
     const user = await userModel.findByIdAndUpdate({ _id: userId }, data, {

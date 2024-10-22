@@ -48,6 +48,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       default:
         "https://w7.pngwing.com/pngs/695/655/png-transparent-head-the-dummy-avatar-man-tie-jacket-user.png",
+        validate(value) {
+            if(!validator.isURL(value)){
+                throw new Error("Invalid Image URL: " + value)
+            }
+          }
     },
     about: {
       type: String,
