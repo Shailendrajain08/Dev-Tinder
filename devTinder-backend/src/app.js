@@ -2,31 +2,51 @@ const express = require("express");
 const connectDB = require("./config/database");
 const app = express();
 const userModel = require("./models/user");
+const {ValidateSignUpData} = require('./utils/validation')
+const bcrypt = require('bcrypt')
 
 app.use(express.json());
 
 // signup for the user
 app.post("/signup", async (req, res) => {
-  const data = req.body
   try {
-    if (data?.skills) {
-      if (Array.isArray(data.skills)) {
-        const uniqueSkills = [...new Set(data.skills)];
-        if (uniqueSkills.length !== data.skills.length) {
-          throw new Error("Duplicate skills are not allowed.");
-        }
-      }
+  // Validation of data
+    ValidateSignUpData(req)
 
-      if (data?.skills.length > 20) {
-        throw new Error("Skills can not be more than 20");
-      }
-    }
+    const {firstName, lastName, emailId, password } = req.body
+
+  // Encrypt the password
+   const passwordHash = await bcrypt.hash(password, 10);
+   console.log(passwordHash)
+
+  // Creating new instance of the user model
+
+
+  // const data = req.body
+  
+    // if (data?.skills) {
+    //   if (Array.isArray(data.skills)) {
+    //     const uniqueSkills = [...new Set(data.skills)];
+    //     if (uniqueSkills.length !== data.skills.length) {
+    //       throw new Error("Duplicate skills are not allowed.");
+    //     }
+    //   }
+
+    //   if (data?.skills.length > 20) {
+    //     throw new Error("Skills can not be more than 20");
+    //   }
+    // }
     
-    const user = new userModel(data);
+    const user = new userModel({
+      firstName,
+      lastName,
+      emailId,
+      password : passwordHash
+    });
     await user.save();
-    res.send("user added successfully");
+    res.status(200).send("user added successfully")
   } catch (err) {
-    res.status(400).send(err.message);
+    res.send(404, err.message)
   }
 });
 
@@ -49,7 +69,7 @@ app.get("/user", async (req, res) => {
 app.get("/feed", async (req, res) => {
   try {
     const users = await userModel.find({});
-    res.send(users);
+    res.status(200).send(users)
   } catch (err) {
     res.status(400).send(err.message);
   }
