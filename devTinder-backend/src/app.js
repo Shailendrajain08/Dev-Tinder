@@ -4,8 +4,12 @@ const app = express();
 const userModel = require("./models/user");
 const {ValidateSignUpData} = require('./utils/validation')
 const bcrypt = require('bcrypt')
+const cookieParser = require("cookie-parser")
 
+const cors = require('cors');
+app.use(cors());
 app.use(express.json());
+app.use(cookieParser);
 
 // signup for the user
 app.post("/signup", async (req, res) => {
@@ -49,6 +53,36 @@ app.post("/signup", async (req, res) => {
     res.send(404, err.message)
   }
 });
+
+app.post("/login", async (req, res) => {
+  try {
+    const {emailId, password} = req.body;
+
+    const user = await userModel.findOne({emailId: emailId})
+
+    if(!user) {
+      throw new Error("Invalid Credentials");
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password)
+
+    if(isPasswordValid) {
+      res.cookie("token", "adlkhfaelagawhjfiawjgawjpawjfwaodjawojfiwaphjfawjflawkfjpoawjfopwjfoawjfopawjf")
+      res.status(200).send("Login Successfull")
+    }else{
+      res.status(404).send("Invalid Credentials")
+    }
+  }catch (err) {
+    res.status(404).send(err.message)
+  }
+});
+
+app.get("/profile", async (req, res) => {
+  const cookie = req.cookies();
+
+  console.log(cookie)
+  res.send("Reading Cookie")
+})
 
 // find user by email
 app.get("/user", async (req, res) => {
@@ -130,7 +164,7 @@ connectDB()
   .then(() => {
     console.log("Database connect established...");
     app.listen(3000, () => {
-      console.log("Server Started Successfully on", " http://localhost:3000/");
+      console.log("Server Started Successfully on", "http://localhost:3000/");
     });
   })
   .catch((err) => {
