@@ -4,12 +4,14 @@ const app = express();
 const userModel = require("./models/user");
 const {ValidateSignUpData} = require('./utils/validation')
 const bcrypt = require('bcrypt')
-const cookieParser = require("cookie-parser")
+const cookieParser = require('cookie-parser')
+const jwt = require ("jsonwebtoken");
+const {userAuth} = require("./middlewares/auth")
 
 const cors = require('cors');
 app.use(cors());
 app.use(express.json());
-app.use(cookieParser);
+app.use(cookieParser());
 
 // signup for the user
 app.post("/signup", async (req, res) => {
@@ -64,10 +66,13 @@ app.post("/login", async (req, res) => {
       throw new Error("Invalid Credentials");
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password)
+    const isPasswordValid = user.validatePassword(password);
 
     if(isPasswordValid) {
-      res.cookie("token", "adlkhfaelagawhjfiawjgawjpawjfwaodjawojfiwaphjfawjflawkfjpoawjfopwjfoawjfopawjf")
+
+      const token = await user.getJWT();
+
+      res.cookie("token", token, {expires:new Date(Date.now() + 8 * 3600000)})
       res.status(200).send("Login Successfull")
     }else{
       res.status(404).send("Invalid Credentials")
@@ -77,11 +82,19 @@ app.post("/login", async (req, res) => {
   }
 });
 
-app.get("/profile", async (req, res) => {
-  const cookie = req.cookies();
+app.get("/profile", userAuth, async (req, res) => {
+try{
+  const user = req.user
+  res.send(user)
+}catch(err) {
+  res.status(400).send("Somthing went wrong")
+}
+})
 
-  console.log(cookie)
-  res.send("Reading Cookie")
+app.post("/sendingConnection", userAuth, async (req, res) => {
+  const user = req.user
+  console.log(`${user.firstName} is sending connection req`)
+  res.send(`connection request sent by ${user.firstName}`)
 })
 
 // find user by email
